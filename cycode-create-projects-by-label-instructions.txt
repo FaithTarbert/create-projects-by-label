@@ -1,0 +1,47 @@
+How to Create Cycode Projects by Label — Postman Guide
+
+WHAT YOU'LL NEED
+- Postman (desktop or web)
+- The attached .json collection file
+- Your Cycode Client ID and Secret (found in Cycode UI under Profile > Personal Access Tokens)
+
+────────────────────────────────────────────────────────────
+
+ONE-TIME SETUP
+
+1. In Postman, click Import and select the attached cycode-create-projects-by-label.postman_collection.json file
+2. Open the collection, go to the Variables tab, and fill in:
+   - clientId → your Cycode Client ID
+   - clientSecret → your Cycode Client Secret
+3. Click Save
+
+────────────────────────────────────────────────────────────
+
+FOR EACH LABEL YOU WANT TO CREATE A PROJECT FOR, RUN THESE STEPS IN ORDER:
+
+Step 1 — Authenticate
+Run the "Step 1 — Authenticate" request. On success, the token is automatically saved — you don't need to copy anything.
+
+** Steps 2–4 are only needed if you want to nest projects under a Group or Sub-group hierarchy. If you want projects created at the top level, skip straight to Step 5. **
+
+Step 2 — Check if Group exists (skip if not using groups)
+Run the Step 2 request with your group name in the query param. If your group already appears in the response, note its id and skip to Step 4 or 5.
+
+Step 3 — Create Group (skip if not using groups, or if it already exists)
+Update the request body with your group name and type, then run it. Save the id from the response.
+
+Step 4 — Create Sub-group (skip if not using sub-groups)
+Update the body with your sub-group name and replace parent_group_id with the id from Step 3. Run it and save the id from the response.
+
+Step 5 — Check if Project exists (recommended)
+Update the query param to your label name (e.g. EAI:7777). If the project already exists in the response, stop here — it's already created.
+
+Step 6 — Create Project
+Update the request body — replace all three instances of EAI:7777 with your label name, and replace parent_group_id with the id from Step 4 (or Step 3 if no sub-group). Run it. The project will be created dynamically linked to the label — any repo tagged with that label is automatically included.
+
+────────────────────────────────────────────────────────────
+
+NOTES
+- You only need to run Steps 2–4 once per group/sub-group hierarchy, not once per label
+- Steps 2 and 5 are safety checks — safe to skip if you know the group/project doesn't exist yet
+- If you need to create projects for multiple labels, repeat Steps 5–6 for each one (Steps 1–4 only need to run once per session)

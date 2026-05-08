@@ -1,0 +1,250 @@
+{
+  "info": {
+    "name": "Cycode - Create Projects by Label",
+    "description": "Step-by-step API requests to create Cycode Groups, Sub-groups, and Projects from repository labels.\n\nSteps 2–4 (Group / Sub-group) are optional — only run them if your hierarchy requires them.\nStep 5 (check project exists) is optional but recommended before Step 6.",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "variable": [
+    {
+      "key": "baseUrl",
+      "value": "https://api.cycode.com",
+      "type": "string"
+    },
+    {
+      "key": "token",
+      "value": "",
+      "type": "string",
+      "description": "Populated automatically after running Step 1."
+    },
+    {
+      "key": "clientId",
+      "value": "your_client_id_here",
+      "type": "string",
+      "description": "Found in Cycode UI under Profile > Personal Access Tokens."
+    },
+    {
+      "key": "clientSecret",
+      "value": "your_client_secret_here",
+      "type": "string",
+      "description": "Found in Cycode UI under Profile > Personal Access Tokens."
+    }
+  ],
+  "item": [
+    {
+      "name": "Step 1 — Authenticate",
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "exec": [
+              "var jsonData = pm.response.json();",
+              "var t = jsonData.access_token || jsonData.token || jsonData.jwt;",
+              "if (t) {",
+              "    pm.collectionVariables.set('token', t);",
+              "    console.log('Token saved to collection variable token.');",
+              "} else {",
+              "    console.warn('Could not find token in response. Keys: ' + Object.keys(jsonData).join(', '));",
+              "}"
+            ],
+            "type": "text/javascript"
+          }
+        }
+      ],
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"clientId\": \"{{clientId}}\",\n  \"secret\": \"{{clientSecret}}\"\n}",
+          "options": {
+            "raw": {
+              "language": "json"
+            }
+          }
+        },
+        "url": {
+          "raw": "{{baseUrl}}/api/v1/auth/api-token",
+          "host": ["{{baseUrl}}"],
+          "path": ["api", "v1", "auth", "api-token"]
+        },
+        "description": "Authenticates with Cycode using your client ID and secret.\n\nThe token is automatically saved to the collection variable `token` — all subsequent requests use it via Bearer auth.\n\nYour credentials are in the Cycode UI under Profile > Personal Access Tokens."
+      }
+    },
+    {
+      "name": "Step 2 — Check if Group exists (optional)",
+      "request": {
+        "auth": {
+          "type": "bearer",
+          "bearer": [
+            {
+              "key": "token",
+              "value": "{{token}}",
+              "type": "string"
+            }
+          ]
+        },
+        "method": "GET",
+        "header": [],
+        "url": {
+          "raw": "{{baseUrl}}/v4/groups?query=My Application Portfolio",
+          "host": ["{{baseUrl}}"],
+          "path": ["v4", "groups"],
+          "query": [
+            {
+              "key": "query",
+              "value": "My Application Portfolio",
+              "description": "Replace with your group name."
+            }
+          ]
+        },
+        "description": "Checks whether the top-level Group already exists.\n\nIf a group with that exact name appears in the `items` array, note its `id` and skip Step 3 — use that ID as `parent_group_id` in Step 4 or Step 6."
+      }
+    },
+    {
+      "name": "Step 3 — Create Group (optional)",
+      "request": {
+        "auth": {
+          "type": "bearer",
+          "bearer": [
+            {
+              "key": "token",
+              "value": "{{token}}",
+              "type": "string"
+            }
+          ]
+        },
+        "method": "POST",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"name\": \"My Application Portfolio\",\n  \"type\": \"Department\"\n}",
+          "options": {
+            "raw": {
+              "language": "json"
+            }
+          }
+        },
+        "url": {
+          "raw": "{{baseUrl}}/v4/groups",
+          "host": ["{{baseUrl}}"],
+          "path": ["v4", "groups"]
+        },
+        "description": "Creates a top-level Group (acts as a folder for projects).\n\nSave the `id` from the response — you'll use it as `parent_group_id` in Step 4 (sub-group) or Step 6 (project) if you are not creating a sub-group.\n\nValid `type` values: `Application`, `Business Unit`, `Department`, `Product Area`, `Product Family`, `Team`, `Other`"
+      }
+    },
+    {
+      "name": "Step 4 — Create Sub-group (optional)",
+      "request": {
+        "auth": {
+          "type": "bearer",
+          "bearer": [
+            {
+              "key": "token",
+              "value": "{{token}}",
+              "type": "string"
+            }
+          ]
+        },
+        "method": "POST",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"name\": \"Security Team\",\n  \"parent_group_id\": 101,\n  \"type\": \"Team\"\n}",
+          "options": {
+            "raw": {
+              "language": "json"
+            }
+          }
+        },
+        "url": {
+          "raw": "{{baseUrl}}/v4/groups",
+          "host": ["{{baseUrl}}"],
+          "path": ["v4", "groups"]
+        },
+        "description": "Creates a Sub-group nested under the Group from Step 3.\n\nReplace `parent_group_id` with the `id` from Step 3.\n\nSave the `id` from this response — you'll use it as `parent_group_id` in Step 6.\n\nValid `type` values: `Application`, `Business Unit`, `Department`, `Product Area`, `Product Family`, `Team`, `Other`"
+      }
+    },
+    {
+      "name": "Step 5 — Check if Project exists (optional)",
+      "request": {
+        "auth": {
+          "type": "bearer",
+          "bearer": [
+            {
+              "key": "token",
+              "value": "{{token}}",
+              "type": "string"
+            }
+          ]
+        },
+        "method": "GET",
+        "header": [],
+        "url": {
+          "raw": "{{baseUrl}}/v4/projects?query=EAI:7777",
+          "host": ["{{baseUrl}}"],
+          "path": ["v4", "projects"],
+          "query": [
+            {
+              "key": "query",
+              "value": "EAI:7777",
+              "description": "Replace with your label name."
+            }
+          ]
+        },
+        "description": "Checks whether a project with this label name already exists.\n\nIf found in the `items` array, skip Step 6."
+      }
+    },
+    {
+      "name": "Step 6 — Create Project",
+      "request": {
+        "auth": {
+          "type": "bearer",
+          "bearer": [
+            {
+              "key": "token",
+              "value": "{{token}}",
+              "type": "string"
+            }
+          ]
+        },
+        "method": "POST",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"name\": \"EAI:7777\",\n  \"business_impact\": \"Medium\",\n  \"project_type\": \"Application\",\n  \"parent_group_id\": 202,\n  \"labels\": [\"EAI:7777\"],\n  \"assets\": [\n    {\n      \"id\": 0,\n      \"asset_type\": \"Label\",\n      \"asset_id\": \"EAI:7777\",\n      \"collisions_count\": 0\n    }\n  ]\n}",
+          "options": {
+            "raw": {
+              "language": "json"
+            }
+          }
+        },
+        "url": {
+          "raw": "{{baseUrl}}/v4/projects",
+          "host": ["{{baseUrl}}"],
+          "path": ["v4", "projects"]
+        },
+        "description": "Creates a project dynamically linked to the label. All repos tagged with this label are automatically included — no need to list repos individually. New repos tagged with this label later are picked up automatically.\n\nReplace all three instances of `EAI:7777` with your actual label name.\n\nReplace `parent_group_id` with:\n- The `id` from Step 4 if you created a sub-group\n- The `id` from Step 3 if you created a group only\n- Omit the field entirely if not using groups\n\nValid `business_impact` values: `Low`, `Medium`, `High`\n\nValid `project_type` values: `Application`, `Business Unit`, `Department`, `Product Area`, `Product Family`, `Team`, `Other`"
+      }
+    }
+  ]
+}

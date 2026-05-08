@@ -248,6 +248,7 @@ class CycodeClient:
         business_impact: str = "Medium",
         parent_group_id: Optional[int] = None,
         project_type: Optional[str] = None,
+        label_names: Optional[list[str]] = None,
         dry_run: bool = False,
     ) -> dict:
         body: dict = {
@@ -259,10 +260,12 @@ class CycodeClient:
             body["parent_group_id"] = parent_group_id
         if project_type:
             body["project_type"] = project_type
+        if label_names:
+            body["labels"] = label_names
         if dry_run:
             log.info(
-                "[DRY-RUN] Would create project: %s  assets=%d  parent_group_id=%s  project_type=%s",
-                name, len(assets), parent_group_id, project_type,
+                "[DRY-RUN] Would create project: %s  assets=%d  labels=%s  parent_group_id=%s  project_type=%s",
+                name, len(assets), label_names, parent_group_id, project_type,
             )
             return {"id": None, "name": name, "_dry_run": True}
         return self._request("POST", "/v4/projects", json=body)
@@ -304,6 +307,7 @@ def run(
     project_type: Optional[str],
     group_type: Optional[str],
     dry_run: bool,
+    use_label_asset: bool = True,
 ) -> None:
     # ── Resolve labels ────────────────────────────────────────────────────────
     if label_prefix and not label_names:
@@ -333,25 +337,35 @@ def run(
     for label in label_names:
         log.info("─── Processing label: %s", label)
 
-        # 1. Get associated repos
-        resources = client.get_label_resources(label)
-        if not resources:
-            log.warning("  No repositories found for label '%s' — skipping.", label)
-            skipped_count += 1
-            continue
-
-        log.info("  Found %d repository resource(s).", len(resources))
-
-        # 2. Build asset list for project creation
-        assets = [
-            {
-                "id": 0,
-                "asset_type": "Repository",
-                "asset_id": r["resource_id"],
-                "collisions_count": 0,
-            }
-            for r in resources
-        ]
+        # 1. Build asset list for project creation
+        label_names_for_project: Optional[list[str]] = None
+        if use_label_asset:
+            log.info("  Using dynamic label asset (label name as asset_id).")
+            assets = [
+                {
+                    "id": 0,
+                    "asset_type": "Label",
+                    "asset_id": label,
+                    "collisions_count": 0,
+                }
+            ]
+            label_names_for_project = [label]
+        else:
+            resources = client.get_label_resources(label)
+            if not resources:
+                log.warning("  No repositories found for label '%s' — skipping.", label)
+                skipped_count += 1
+                continue
+            log.info("  Found %d repository resource(s).", len(resources))
+            assets = [
+                {
+                    "id": 0,
+                    "asset_type": "Repository",
+                    "asset_id": r["resource_id"],
+                    "collisions_count": 0,
+                }
+                for r in resources
+            ]
 
         # 3. Check for existing project
         existing_project = client.find_project_by_name(label)
@@ -368,6 +382,7 @@ def run(
                 business_impact=business_impact,
                 parent_group_id=parent_group_id,
                 project_type=project_type,
+                label_names=label_names_for_project,
                 dry_run=dry_run,
             )
             if not result.get("_dry_run"):
@@ -438,6 +453,11 @@ def parse_args() -> argparse.Namespace:
 
     p.add_argument("--log-file", metavar="FILE", help="Also write log output to this file.")
     p.add_argument("--dry-run", action="store_true", help="Simulate all writes — nothing is created in Cycode.")
+    p.add_argument(
+        "--repo-assets",
+        action="store_true",
+        help="Attach individual repos as static assets instead of the default dynamic label asset.",
+    )
 
     return p.parse_args()
 
@@ -487,6 +507,7 @@ def main() -> None:
         project_type=project_type,
         group_type=group_type,
         dry_run=args.dry_run,
+        use_label_asset=not args.repo_assets,
     )
 
 

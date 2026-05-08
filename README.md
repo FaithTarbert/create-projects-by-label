@@ -5,11 +5,10 @@ Creates Cycode Groups, Sub-groups, and Projects at scale by api from repository 
 ## How it works
 
 1. Reads label names from Cycode (by prefix or explicit list)
-2. For each label, fetches the associated repository resources
-3. Optionally creates a Group and/or Sub-group hierarchy
-4. Creates one Project per label, named after the label (e.g. `APPID:11945`), with the repos attached
-5. Skips anything that already exists — safe to re-run at any time
-6. Complete the variables in the run.py file to execute
+2. Optionally creates a Group and/or Sub-group hierarchy
+3. Creates one Project per label, named after the label (e.g. `APPID:11945`), dynamically linked to the label — all repos tagged with that label are automatically included, and new repos tagged later are picked up automatically
+4. Skips anything that already exists — safe to re-run at any time
+5. Complete the variables in the run.py file to execute
 
 ## Setup
 
@@ -160,6 +159,7 @@ python3 create_groups_by_label.py --label-prefix "EAI:" --log-file run.log
 | `--group-type TYPE` | Type for new groups/sub-groups: same values as `--project-type` |
 | `--log-file FILE` | Also write log output to a file |
 | `--dry-run` | Simulate everything — no changes written to Cycode |
+| `--repo-assets` | Attach individual repos as static assets instead of the default dynamic label asset |
 
 ## Idempotency
 

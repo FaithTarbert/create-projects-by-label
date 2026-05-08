@@ -5,11 +5,11 @@ Edit the variables below, then run: python3 run.py
 # ── Configuration ──────────────────────────────────────────────────────────────
 
 # Process all labels starting with this prefix (leave blank to use LABELS list)
-LABEL_PREFIX = "APPID"
+LABEL_PREFIX = ""
 
 # Or specify exact labels as a list (only used if LABEL_PREFIX is blank)
 # Example: LABELS = ["APPID:11945", "APPID:11946", "APPID:11947"]
-LABELS = []
+LABELS = ["EAI:0000"]
 
 # Or point to a text file with one label per line (only used if LABEL_PREFIX and LABELS are both blank)
 # Place the file in the same folder as run.py and just use the filename, e.g. "labels.txt"
@@ -33,6 +33,10 @@ GROUP_TYPE = ""
 
 # Set to True to preview without writing anything to Cycode, False to make actual changes
 DRY_RUN = False
+
+# Set to True to attach individual repos as static assets instead of the default
+# dynamic label asset. Only needed if you want a static snapshot of repos at creation time.
+USE_REPO_ASSETS = False
 
 # Save log output to a file (leave blank to skip)
 # Example: "run.log" will save a log file in the root of this app
@@ -67,6 +71,8 @@ if LOG_FILE:
     args += ["--log-file", LOG_FILE]
 if DRY_RUN:
     args += ["--dry-run"]
+if USE_REPO_ASSETS:
+    args += ["--repo-assets"]
 
 sys.argv = ["create_groups_by_label.py"] + args
 
