@@ -1,0 +1,68 @@
+How to Assign Tenant-Level Members to a Project — Postman Guide
+
+WHAT YOU'LL NEED
+- Postman (desktop or web)
+- The attached cycode-assign-members-to-project.postman_collection.json file
+- Your Cycode Client ID and Secret (found in Cycode UI under Profile > Personal Access Tokens)
+- The name of the project you want to assign members to
+- For SSO users: their email addresses (SSO users cannot be queried via API — you will need to know these in advance)
+
+────────────────────────────────────────────────────────────
+
+ONE-TIME SETUP
+
+1. In Postman, click Import and select the attached cycode-assign-members-to-project.postman_collection.json file
+2. Open the collection, go to the Variables tab, and fill in:
+   - clientId → your Cycode Client ID
+   - clientSecret → your Cycode Client Secret
+3. Click Save
+
+────────────────────────────────────────────────────────────
+
+STEPS
+
+Step 1 — Authenticate
+Run the Step 1 — Authenticate request. The token is automatically saved — you don't need to copy anything.
+
+Step 2 — Get all members
+Run the Step 2 request. This returns all non-SSO members in your tenant.
+
+To identify unassigned users, look at the metadata field in each user object:
+  - project_ids: []         → not assigned to any project
+  - has_full_access: true   → sitting at full tenant-level access
+
+Users matching both conditions are your unassigned members.
+For each one, note their external_id value — you will need it in Step 4.
+
+** SSO users do not appear in this response. If you have SSO users to assign, you will need their email addresses. Skip to Step 5 for those. **
+
+Step 3 — Get project ID
+Update the query param to your project name and run the request.
+Save the id value from the matching item in the response — you will need it in Steps 4 and 5.
+
+Step 4 — Assign non-SSO members to project (skip if all your users are SSO)
+Update the request:
+  - Replace YOUR_PROJECT_ID_HERE in the URL with the id from Step 3
+  - Replace the external_id placeholder values with the external_id values
+    from the unassigned users identified in Step 2 (one per line)
+
+A 204 No Content response means success.
+
+Step 5 — Assign SSO members to project (skip if you have no SSO users)
+Update the request:
+  - Replace YOUR_PROJECT_ID_HERE in the URL with the id from Step 3
+  - Replace each email and name with the SSO user's actual details
+  - Add one object per SSO user following the same format
+  - Set role to the appropriate level for each user
+
+skip_invite is set to true so existing users will not receive a new invitation email.
+A 204 No Content response means success.
+
+Valid role values: Viewer, Developer, Member, ProjectManager, Admin, Owner
+
+────────────────────────────────────────────────────────────
+
+NOTES
+- Steps 4 and 5 can be run independently — use whichever applies to your user types
+- Both steps can be run multiple times safely — assigning an already-assigned user does not create duplicates
+- If you are assigning a large number of users, you can include all of them in a single request body rather than running the request once per user

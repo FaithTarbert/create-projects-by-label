@@ -1,0 +1,206 @@
+{
+  "info": {
+    "name": "Cycode - Assign Tenant-Level Members to a Project",
+    "description": "Steps to identify existing members with unassigned tenant-level access and move them into a specific project.\n\nNote: SSO users do not appear in the GET /v4/members response. Use Step 4 for non-SSO users and Step 5 for SSO users.",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "variable": [
+    {
+      "key": "baseUrl",
+      "value": "https://api.cycode.com",
+      "type": "string"
+    },
+    {
+      "key": "token",
+      "value": "",
+      "type": "string",
+      "description": "Populated automatically after running Step 1."
+    },
+    {
+      "key": "clientId",
+      "value": "your_client_id_here",
+      "type": "string",
+      "description": "Found in Cycode UI under Profile > Personal Access Tokens."
+    },
+    {
+      "key": "clientSecret",
+      "value": "your_client_secret_here",
+      "type": "string",
+      "description": "Found in Cycode UI under Profile > Personal Access Tokens."
+    }
+  ],
+  "item": [
+    {
+      "name": "Step 1 — Authenticate",
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "exec": [
+              "var jsonData = pm.response.json();",
+              "var t = jsonData.access_token || jsonData.token || jsonData.jwt;",
+              "if (t) {",
+              "    pm.collectionVariables.set('token', t);",
+              "    console.log('Token saved to collection variable token.');",
+              "} else {",
+              "    console.warn('Could not find token in response. Keys: ' + Object.keys(jsonData).join(', '));",
+              "}"
+            ],
+            "type": "text/javascript"
+          }
+        }
+      ],
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"clientId\": \"{{clientId}}\",\n  \"secret\": \"{{clientSecret}}\"\n}",
+          "options": {
+            "raw": {
+              "language": "json"
+            }
+          }
+        },
+        "url": {
+          "raw": "{{baseUrl}}/api/v1/auth/api-token",
+          "host": ["{{baseUrl}}"],
+          "path": ["api", "v1", "auth", "api-token"]
+        },
+        "description": "Authenticates with Cycode using your client ID and secret. The token is automatically saved to the collection variable `token`.\n\nYour credentials are in the Cycode UI under Profile > Personal Access Tokens."
+      }
+    },
+    {
+      "name": "Step 2 — Get all members",
+      "request": {
+        "auth": {
+          "type": "bearer",
+          "bearer": [
+            {
+              "key": "token",
+              "value": "{{token}}",
+              "type": "string"
+            }
+          ]
+        },
+        "method": "GET",
+        "header": [],
+        "url": {
+          "raw": "{{baseUrl}}/v4/members",
+          "host": ["{{baseUrl}}"],
+          "path": ["v4", "members"]
+        },
+        "description": "Returns all non-SSO members in the tenant.\n\nTo identify unassigned tenant-level users, look in each user's metadata field for:\n- project_ids: [] (empty — not assigned to any project)\n- has_full_access: true (sitting at full tenant-level access)\n\nFor each unassigned user, note their external_id — you will need it in Step 4.\n\nNote: SSO users do not appear in this response. Add them directly by email in Step 5."
+      }
+    },
+    {
+      "name": "Step 3 — Get project ID",
+      "request": {
+        "auth": {
+          "type": "bearer",
+          "bearer": [
+            {
+              "key": "token",
+              "value": "{{token}}",
+              "type": "string"
+            }
+          ]
+        },
+        "method": "GET",
+        "header": [],
+        "url": {
+          "raw": "{{baseUrl}}/v4/projects?query=Your Project Name Here",
+          "host": ["{{baseUrl}}"],
+          "path": ["v4", "projects"],
+          "query": [
+            {
+              "key": "query",
+              "value": "Your Project Name Here",
+              "description": "Replace with the name of the project you want to assign members to."
+            }
+          ]
+        },
+        "description": "Finds the project you want to assign members to. Replace the query value with your project name.\n\nSave the `id` from the matching item in the response — you will need it in Steps 4 and 5."
+      }
+    },
+    {
+      "name": "Step 4 — Assign non-SSO members to project",
+      "request": {
+        "auth": {
+          "type": "bearer",
+          "bearer": [
+            {
+              "key": "token",
+              "value": "{{token}}",
+              "type": "string"
+            }
+          ]
+        },
+        "method": "PUT",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"members_to_add\": [\n    \"external_id_of_user_1\",\n    \"external_id_of_user_2\"\n  ]\n}",
+          "options": {
+            "raw": {
+              "language": "json"
+            }
+          }
+        },
+        "url": {
+          "raw": "{{baseUrl}}/v4/projects/YOUR_PROJECT_ID_HERE",
+          "host": ["{{baseUrl}}"],
+          "path": ["v4", "projects", "YOUR_PROJECT_ID_HERE"]
+        },
+        "description": "Assigns existing non-SSO members to the project using their external_id values from Step 2.\n\nReplace YOUR_PROJECT_ID_HERE in the URL with the project id from Step 3.\nReplace the external_id values with those from the unassigned users in Step 2.\nAdd one entry per user. A 204 No Content response means success."
+      }
+    },
+    {
+      "name": "Step 5 — Assign SSO members to project",
+      "request": {
+        "auth": {
+          "type": "bearer",
+          "bearer": [
+            {
+              "key": "token",
+              "value": "{{token}}",
+              "type": "string"
+            }
+          ]
+        },
+        "method": "PUT",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"members_to_invite\": [\n    {\n      \"email\": \"sso-user1@example.com\",\n      \"name\": \"User One\",\n      \"role\": \"Developer\",\n      \"skip_invite\": true,\n      \"project_ids\": [],\n      \"project_role\": {},\n      \"project_title\": {}\n    },\n    {\n      \"email\": \"sso-user2@example.com\",\n      \"name\": \"User Two\",\n      \"role\": \"Developer\",\n      \"skip_invite\": true,\n      \"project_ids\": [],\n      \"project_role\": {},\n      \"project_title\": {}\n    }\n  ]\n}",
+          "options": {
+            "raw": {
+              "language": "json"
+            }
+          }
+        },
+        "url": {
+          "raw": "{{baseUrl}}/v4/projects/YOUR_PROJECT_ID_HERE",
+          "host": ["{{baseUrl}}"],
+          "path": ["v4", "projects", "YOUR_PROJECT_ID_HERE"]
+        },
+        "description": "Assigns existing SSO members to the project by email. SSO users do not appear in GET /v4/members so they must be added this way.\n\nReplace YOUR_PROJECT_ID_HERE in the URL with the project id from Step 3.\nReplace email and name with the SSO user's details. Add one object per user.\nskip_invite: true prevents a new invitation email from being sent since they already have an account.\nA 204 No Content response means success.\n\nValid role values: Viewer, Developer, Member, ProjectManager, Admin, Owner"
+      }
+    }
+  ]
+}
