@@ -201,6 +201,43 @@
         },
         "description": "Assigns existing SSO members to the project by email. SSO users do not appear in GET /v4/members so they must be added this way.\n\nReplace YOUR_PROJECT_ID_HERE in the URL with the project id from Step 3.\nReplace email and name with the SSO user's details. Add one object per user.\nskip_invite: true prevents a new invitation email from being sent since they already have an account.\nA 204 No Content response means success.\n\nValid role values: Viewer, Developer, Member, ProjectManager, Admin, Owner"
       }
+    },
+    {
+      "name": "Step 6 — Remove members from original project (optional)",
+      "request": {
+        "auth": {
+          "type": "bearer",
+          "bearer": [
+            {
+              "key": "token",
+              "value": "{{token}}",
+              "type": "string"
+            }
+          ]
+        },
+        "method": "PUT",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"members_to_remove\": [\n    \"external_id_of_user_1\",\n    \"external_id_of_user_2\"\n  ]\n}",
+          "options": {
+            "raw": {
+              "language": "json"
+            }
+          }
+        },
+        "url": {
+          "raw": "{{baseUrl}}/v4/projects/ORIGINAL_PROJECT_ID_HERE",
+          "host": ["{{baseUrl}}"],
+          "path": ["v4", "projects", "ORIGINAL_PROJECT_ID_HERE"]
+        },
+        "description": "Removes members from the project they were previously assigned to.\n\nAssigning a user to a new project does not automatically remove them from their old one — run this step if you want to move them rather than add them to both.\n\nReplace ORIGINAL_PROJECT_ID_HERE in the URL with the id of the project you are removing them from. If you need to look up that project's id, run Step 3 again with that project's name.\n\nReplace the external_id values with the same external_id values used in Step 4. Add one entry per user.\n\nA 204 No Content response means success."
+      }
     }
   ]
 }

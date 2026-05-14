@@ -60,9 +60,21 @@ A 204 No Content response means success.
 
 Valid role values: Viewer, Developer, Member, ProjectManager, Admin, Owner
 
+Step 6 — Remove members from original project (optional)
+Assigning a user to a new project does not remove them from their previous one — they will be in both.
+Run this step only if you want to move users rather than add them to both projects.
+
+Update the request:
+  - Replace ORIGINAL_PROJECT_ID_HERE in the URL with the id of the project you are removing them from
+    (if you need to look up that id, run Step 3 again with that project's name)
+  - Replace the external_id placeholder values with the same external_id values used in Step 4
+
+A 204 No Content response means success.
+
 ────────────────────────────────────────────────────────────
 
 NOTES
 - Steps 4 and 5 can be run independently — use whichever applies to your user types
 - Both steps can be run multiple times safely — assigning an already-assigned user does not create duplicates
 - If you are assigning a large number of users, you can include all of them in a single request body rather than running the request once per user
+- Step 6 is safe to skip if users should remain in both projects
